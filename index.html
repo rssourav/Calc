@@ -1,0 +1,330 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Neon Calculator</title>
+  <style>
+    :root {
+      --bg: #0b0f1a;
+      --panel: #0f1629cc;
+      --text: #e6f1ff;
+      --muted: #8aa0c2;/* Neon theme colors (easily tweak) */
+  --neon: #00ffc6;           /* main neon glow */
+  --neon-2: #00b3ff;         /* accent glow */
+  --danger: #ff3570;         /* for DEL / C */
+
+  /* Shadows */
+  --glow-1: 0 0 .4rem var(--neon);
+  --glow-2: 0 0 1rem var(--neon);
+  --glow-3: 0 0 2rem var(--neon-2);
+  --inset: inset 0 0 .6rem rgba(0,255,198,.25);
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  background: radial-gradient(1200px 800px at 10% 10%, #0d1430, transparent),
+              radial-gradient(800px 600px at 90% 20%, #132444, transparent),
+              radial-gradient(700px 700px at 50% 100%, #111b2e, transparent),
+              var(--bg);
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.shell {
+  width: min(420px, 92vw);
+  backdrop-filter: blur(10px) saturate(120%);
+  background: linear-gradient(180deg, rgba(17,24,39,.8), rgba(15,22,41,.7));
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 24px;
+  box-shadow: 0 10px 40px rgba(0,0,0,.45), 0 0 2rem rgba(0,255,198,.1);
+  overflow: hidden;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  background: linear-gradient(90deg, rgba(0,255,198,.06), transparent 40%);
+  font-weight: 600;
+  letter-spacing: .4px;
+}
+
+.brand .dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, var(--neon), #006e66);
+  box-shadow: var(--glow-1), var(--glow-2);
+}
+
+.display {
+  padding: 20px 16px 8px;
+  text-align: right;
+  min-height: 96px;
+  display: grid;
+  align-content: end;
+  gap: 8px;
+  background:
+    radial-gradient(600px 200px at 100% 0%, rgba(0,179,255,.10), transparent),
+    radial-gradient(400px 200px at 0% 0%, rgba(0,255,198,.06), transparent);
+}
+
+.prev {
+  color: var(--muted);
+  font-size: .95rem;
+  min-height: 1.2em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.curr {
+  font-size: clamp(1.6rem, 4.5vw + 1rem, 2.8rem);
+  font-weight: 700;
+  line-height: 1.1;
+  text-shadow: 0 0 .3rem rgba(0,255,198,.35);
+  word-break: break-all;
+}
+
+.keys {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  padding: 16px;
+  background: linear-gradient(180deg, rgba(0,0,0,.08), transparent);
+}
+
+button.btn {
+  position: relative;
+  appearance: none;
+  border: 1px solid rgba(255,255,255,.08);
+  background: linear-gradient(180deg, #0f1a2d, #0c1424);
+  color: var(--text);
+  font-size: 1.2rem;
+  padding: 16px 10px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: transform .06s ease, box-shadow .08s linear, filter .08s linear;
+  box-shadow: var(--inset), 0 2px 10px rgba(0,0,0,.45);
+  outline: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  text-shadow: 0 0 .4rem rgba(0,255,198,.35);
+}
+
+/* Neon ring (off by default) */
+button.btn::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  border: 1px solid rgba(0,255,198,.35);
+  filter: blur(2px);
+  opacity: .0;
+  transition: opacity .12s ease;
+  pointer-events: none;
+  box-shadow: var(--glow-1), var(--glow-2), var(--glow-3);
+}
+
+/* Hover/focus show subtle glow */
+button.btn:is(:hover, :focus-visible)::after { opacity: .35; }
+
+/* Tap/active: stronger neon blast */
+button.btn:is(:active, .active) {
+  transform: translateY(1px) scale(.99);
+  box-shadow: var(--inset), 0 0 0 rgba(0,0,0,0), var(--glow-1), var(--glow-2);
+  filter: brightness(1.1);
+}
+button.btn:is(:active, .active)::after { opacity: .9; }
+
+.btn.op { color: #b6d7ff; }
+.btn.eq { grid-column: span 2; font-weight: 800; }
+.btn.zero { grid-column: span 2; }
+
+/* Variant accents */
+.btn.danger { border-color: rgba(255,53,112,.35); text-shadow: 0 0 .4rem rgba(255,53,112,.5); }
+.btn.danger::after { border-color: rgba(255,53,112,.45); box-shadow: 0 0 .5rem #ff3570, 0 0 1.2rem #ff3570; }
+
+/* Narrow screens: increase touch area */
+@media (max-width: 380px) {
+  button.btn { padding-block: 18px; }
+}
+
+/* Small hint footer */
+.hint { text-align: center; font-size: .82rem; color: #9fb3d1; padding: 6px 0 14px; opacity: .8; }
+.hint kbd { background: #0e1628; border: 1px solid rgba(255,255,255,.08); border-radius: 6px; padding: 0 6px; font-size: .78rem; }
+
+  </style>
+</head>
+<body>
+  <div class="shell" role="application" aria-label="Neon Calculator">
+    <div class="brand">
+      <div>NEON CALC</div>
+      <div class="dot" aria-hidden="true"></div>
+    </div>
+    <div class="display" aria-live="polite">
+      <div class="prev" id="prev"></div>
+      <div class="curr" id="curr">0</div>
+    </div><div class="keys" id="keys">
+  <button class="btn danger" data-action="clear">C</button>
+  <button class="btn danger" data-action="del">DEL</button>
+  <button class="btn op" data-op="%">%</button>
+  <button class="btn op" data-op="/">÷</button>
+
+  <button class="btn" data-num>7</button>
+  <button class="btn" data-num>8</button>
+  <button class="btn" data-num>9</button>
+  <button class="btn op" data-op="*">×</button>
+
+  <button class="btn" data-num>4</button>
+  <button class="btn" data-num>5</button>
+  <button class="btn" data-num>6</button>
+  <button class="btn op" data-op="-">−</button>
+
+  <button class="btn" data-num>1</button>
+  <button class="btn" data-num>2</button>
+  <button class="btn" data-num>3</button>
+  <button class="btn op" data-op="+">+</button>
+
+  <button class="btn zero" data-num>0</button>
+  <button class="btn" data-dot>. </button>
+  <button class="btn eq" data-eq>=</button>
+</div>
+<div class="hint">Tap a key for neon glow • Keyboard supported (<kbd>0–9</kbd>, <kbd>+ − × ÷</kbd>, <kbd>Enter</kbd>, <kbd>Backspace</kbd>)</div>
+
+  </div>  <script>
+    const prev = document.getElementById('prev');
+    const curr = document.getElementById('curr');
+    const keys = document.getElementById('keys');
+
+    let a = null, op = null, resetNext = false;
+
+    const format = (n) => {
+      const num = Number(n);
+      if (!Number.isFinite(num)) return 'Error';
+      const parts = n.toString().split('.');
+      parts[0] = Number(parts[0]).toLocaleString();
+      return parts.join('.');
+    };
+
+    const getVal = () => curr.dataset.raw ?? '0';
+    const setVal = (v) => {
+      const raw = (typeof v === 'number') ? String(v) : v;
+      curr.dataset.raw = raw;
+      curr.textContent = format(raw);
+    };
+
+    setVal('0');
+
+    function pulse(btn) {
+      btn.classList.add('active');
+      setTimeout(() => btn.classList.remove('active'), 120);
+    }
+
+    function appendDigit(d) {
+      if (resetNext) { setVal(d); resetNext = false; return; }
+      let v = getVal();
+      if (v === '0') v = '';
+      if (v.replace(/\D/g,'').length >= 16) return; // length guard
+      setVal(v + d);
+    }
+
+    function addDot() {
+      let v = getVal();
+      if (resetNext) { setVal('0.'); resetNext = false; return; }
+      if (!v.includes('.')) setVal(v + '.');
+    }
+
+    function chooseOp(nextOp) {
+      const v = Number(getVal());
+      if (op && !resetNext) {
+        // chain operations
+        a = compute(a, v, op);
+      } else {
+        a = v;
+      }
+      op = nextOp;
+      resetNext = true;
+      prev.textContent = `${format(a)} ${op}`;
+    }
+
+    function compute(x, y, operator) {
+      if (operator === '%') return x * (y / 100);
+      switch (operator) {
+        case '+': return x + y;
+        case '-': return x - y;
+        case '*': return x * y;
+        case '/': return y === 0 ? NaN : x / y;
+        default: return y;
+      }
+    }
+
+    function doEq() {
+      if (op === null) return;
+      const b = Number(getVal());
+      const result = compute(a, b, op);
+      setVal(String(result));
+      prev.textContent = `${format(a)} ${op} ${format(b)} =`;
+      a = result; op = null; resetNext = true;
+    }
+
+    function doDel() {
+      if (resetNext) { setVal('0'); resetNext = false; return; }
+      let v = getVal();
+      if (v.length <= 1 || (v.length === 2 && v.startsWith('-'))) { setVal('0'); return; }
+      setVal(v.slice(0, -1));
+    }
+
+    function doClear() {
+      a = null; op = null; resetNext = false; setVal('0'); prev.textContent = '';
+    }
+
+    keys.addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      pulse(btn);
+      if (btn.hasAttribute('data-num')) return appendDigit(btn.textContent.trim());
+      if (btn.hasAttribute('data-dot')) return addDot();
+      if (btn.hasAttribute('data-eq')) return doEq();
+      if (btn.dataset.action === 'del') return doDel();
+      if (btn.dataset.action === 'clear') return doClear();
+      if (btn.dataset.op) return chooseOp(btn.dataset.op);
+    });
+
+    // Keyboard support
+    window.addEventListener('keydown', (e) => {
+      const k = e.key;
+      const map = { '/': '÷', '*': '×', '-': '−', '+': '+', '%': '%', 'Enter': '=', '=': '=', 'Backspace': 'DEL' };
+
+      if (/^\d$/.test(k)) {
+        const btn = [...document.querySelectorAll('[data-num]')].find(b => b.textContent.trim() === k);
+        if (btn) pulse(btn);
+        appendDigit(k);
+        e.preventDefault();
+      } else if (k === '.') { pulse(document.querySelector('[data-dot]')); addDot(); e.preventDefault(); }
+      else if (['/', '*', '-', '+', '%'].includes(k)) {
+        const selector = `[data-op="${k}"]`;
+        const btn = document.querySelector(selector);
+        if (btn) pulse(btn);
+        chooseOp(k); e.preventDefault();
+      } else if (k === 'Enter' || k === '=') { pulse(document.querySelector('[data-eq]')); doEq(); e.preventDefault(); }
+      else if (k === 'Backspace') { pulse(document.querySelector('[data-action="del"]')); doDel(); e.preventDefault(); }
+      else if (k.toLowerCase() === 'c') { pulse(document.querySelector('[data-action="clear"]')); doClear(); }
+    }, { passive: false });
+
+    // Improve focus ring for accessibility on keyboard navigation
+    let usingMouse = false;
+    window.addEventListener('mousedown', () => { usingMouse = true; document.body.classList.add('using-mouse'); }, { passive: true });
+    window.addEventListener('keydown', () => { usingMouse = false; document.body.classList.remove('using-mouse'); });
+    document.addEventListener('focusin', (e) => {
+      if (usingMouse && e.target.matches('button')) e.target.blur();
+    });
+  </script></body>
+  </html>
